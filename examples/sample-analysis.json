@@ -1,0 +1,12 @@
+{
+  "stats": {
+    "devices": 21,
+    "pages": 3,
+    "pins": 96,
+    "wires": 49,
+    "nets": 26,
+    "errors": 0,
+    "warnings": 0
+  },
+  "issues": []
+}

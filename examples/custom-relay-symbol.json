@@ -1,0 +1,69 @@
+{
+  "id": "customControlRelay",
+  "name": "Custom control relay",
+  "category": "Custom",
+  "prefix": "K",
+  "bounds": [
+    -32,
+    -45,
+    32,
+    45
+  ],
+  "pins": [
+    {
+      "key": "A1",
+      "x": 0,
+      "y": -45,
+      "type": "passive",
+      "label": "A1",
+      "required": true
+    },
+    {
+      "key": "A2",
+      "x": 0,
+      "y": 45,
+      "type": "passive",
+      "label": "A2",
+      "required": true
+    }
+  ],
+  "shapes": [
+    {
+      "type": "line",
+      "points": [
+        0,
+        -45,
+        0,
+        -24
+      ]
+    },
+    {
+      "type": "rect",
+      "x": -30,
+      "y": -24,
+      "w": 60,
+      "h": 48
+    },
+    {
+      "type": "line",
+      "points": [
+        0,
+        24,
+        0,
+        45
+      ]
+    },
+    {
+      "type": "line",
+      "points": [
+        -23,
+        18,
+        23,
+        -18
+      ]
+    }
+  ],
+  "part": "CUSTOM-RELAY-24DC",
+  "description": "User-defined control relay",
+  "rating": "24 V DC"
+}

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#133b4a"><meta name="description" content="VoltWeave — a semantic electrical engineering workbench. Edit multi-page schematics, connect real terminals, and generate documentation.">
+  <title>VoltWeave · Electrical Engineering</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%23007e91'/%3E%3Cpath d='M23 5L10 23h10l-3 12 14-20H21z' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6h7l2 3h9v11H3z"/><path d="M3 6V4h7l2 2h7v3"/></symbol>
+<symbol id="i-save" viewBox="0 0 24 24"><path d="M4 3h13l4 4v14H3V3z"/><path d="M7 3v6h10V3M7 21v-8h10v8M14 4v3"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 5L3 11l6 6M3 11h11a6 6 0 016 6"/></symbol>
+<symbol id="i-redo" viewBox="0 0 24 24"><path d="M15 5l6 6-6 6m6-6H10a6 6 0 00-6 6"/></symbol>
+<symbol id="i-new" viewBox="0 0 24 24"><path d="M14 3H5v18h14V8zM14 3v5h5M8 14h8m-4-4v8"/></symbol>
+<symbol id="i-cursor" viewBox="0 0 24 24"><path d="M5 3l15 10-8 1-4 7z"/></symbol>
+<symbol id="i-wire" viewBox="0 0 24 24"><circle cx="4" cy="18" r="2"/><circle cx="20" cy="6" r="2"/><path d="M6 18h6V6h6"/></symbol>
+<symbol id="i-symbol" viewBox="0 0 24 24"><path d="M12 2v5m0 10v5M6 7h12v10H6zM8 15l8-6"/></symbol>
+<symbol id="i-rotate" viewBox="0 0 24 24"><path d="M4 9a9 9 0 119 12M4 3v6h6"/><path d="M9 12h6v6H9z"/></symbol>
+<symbol id="i-fit" viewBox="0 0 24 24"><path d="M3 9V3h6m6 0h6v6m0 6v6h-6m-6 0H3v-6M8 8h8v8H8z"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><path d="M3 3h18v18H3zM9 3v18m6-18v18M3 9h18M3 15h18"/></symbol>
+<symbol id="i-magnet" viewBox="0 0 24 24"><path d="M5 3v11a7 7 0 0014 0V3h-5v11a2 2 0 01-4 0V3zM5 7h5m4 0h5"/></symbol>
+<symbol id="i-number" viewBox="0 0 24 24"><path d="M9 3L6 21M17 3l-3 18M3 9h18M2 15h18"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M12 2l9 4v6c0 5-9 10-9 10S3 17 3 12V6zM7 12l3 3 7-7"/></symbol>
+<symbol id="i-report" viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5zM15 3v5h4M8 12h8M8 16h8"/></symbol>
+<symbol id="i-table" viewBox="0 0 24 24"><path d="M3 4h18v16H3zM3 9h18M9 4v16M3 15h18"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M15 15l6 6"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16"/></symbol>
+<symbol id="i-minus" viewBox="0 0 24 24"><path d="M4 12h16"/></symbol>
+<symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M6 18L18 6"/></symbol>
+<symbol id="i-chevron" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+<symbol id="i-page" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6zM15 3v5h4M9 12h7M9 16h7"/></symbol>
+<symbol id="i-device" viewBox="0 0 24 24"><path d="M6 6h12v12H6zM9 9h6v6H9zM9 2v4m6-4v4M9 18v4m6-4v4M2 9h4m-4 6h4m12-6h4m-4 6h4"/></symbol>
+<symbol id="i-terminal" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM9 5v14m6-14v14M6 2v3m6-3v3m6-3v3M6 19v3m6-3v3m6-3v3"/></symbol>
+<symbol id="i-cable" viewBox="0 0 24 24"><path d="M3 8h18v8H3zM2 5h5m-5 14h5m10-14h5m-5 14h5M8 8v8m8-8v8M3 12h18"/></symbol>
+<symbol id="i-pan" viewBox="0 0 24 24"><path d="M8 12V5a2 2 0 014 0v6-8a2 2 0 014 0v8-5a2 2 0 014 0v8c0 5-2 8-7 8-3 0-5-2-7-5l-3-4a2 2 0 013-2l2 2"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V3h8v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><path d="M8 8h13v13H8zM16 8V3H3v13h5"/></symbol>
+<symbol id="i-export" viewBox="0 0 24 24"><path d="M12 3v12m-5-5l5 5 5-5M4 15v6h16v-6"/></symbol>
+<symbol id="i-bolt" viewBox="0 0 24 24"><path d="M14 2L4 14h8l-2 8L21 9h-8z"/></symbol>
+<symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 8a3 3 0 015 2c0 2-2 2-2 4m0 3h.01"/></symbol>
+<symbol id="i-expand" viewBox="0 0 24 24"><path d="M3 9V3h6m6 0h6v6M3 15v6h6m6 0h6v-6M3 3l6 6m6 6l6 6M3 21l6-6m6-6l6-6"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 6l2-2a5 5 0 017 7l-3 3M14 18l-2 2a5 5 0 01-7-7l3-3M8 16l8-8"/></symbol>
+</defs></svg>
+<header class="titlebar">
+  <button class="brand" data-action="fit" title="VoltWeave · fit sheet"><span class="brandmark"><svg class="icon"><use href="#i-bolt"/></svg></span><b>volt<span>weave</span></b><span class="brand-edition">ELECTRICAL</span></button>
+  <div class="title-separator"></div><span class="title-project" id="titleProject">Opening workspace…</span>
+  <div class="title-actions"><span class="local-badge"><i></i> LOCAL WORKSPACE</span><button class="title-button" data-action="command" title="Command palette · Ctrl+K"><svg class="icon"><use href="#i-search"/></svg><span>Search commands</span><kbd>⌘ K</kbd></button><button class="icon-button light" data-action="help" title="Help and shortcuts"><svg class="icon"><use href="#i-help"/></svg></button></div>
+</header>
+<nav class="menubar" aria-label="Application menus">
+  <button data-menu="project" class="file-menu">Project</button><button data-menu="edit">Edit</button><button data-menu="view">View</button><button data-menu="insert">Insert</button><button data-menu="engineering">Engineering</button><button data-menu="reports">Reports</button><button data-action="help">Help</button>
+  <span id="saveState" class="save-state">Initializing…</span>
+</nav>
+<section class="ribbon" aria-label="Command ribbon">
+  <div class="ribbon-tabs"><button class="active" data-ribbon="home">Home</button><button data-ribbon="insert">Insert</button><button data-ribbon="data">Project data</button><button data-ribbon="review">Review & export</button><span class="ribbon-caption">DESIGN WITH CONNECTIONS, NOT JUST LINES.</span></div>
+  <div id="ribbonCommands" class="ribbon-commands"></div>
+</section>
+<main class="workspace">
+  <aside class="navigator" aria-label="Project navigator">
+    <div class="panel-title"><span>Project navigator</span><button class="icon-button" data-action="addPage" title="Add page"><svg class="icon"><use href="#i-plus"/></svg></button></div>
+    <div class="navigator-tabs"><button class="active" data-nav="pages"><svg class="icon"><use href="#i-page"/></svg>Pages</button><button data-nav="devices"><svg class="icon"><use href="#i-device"/></svg>Devices</button></div>
+    <label class="search-field"><svg class="icon"><use href="#i-search"/></svg><input id="navSearch" placeholder="Filter project…" aria-label="Filter project navigator"><kbd>/</kbd></label>
+    <div id="projectTree" class="project-tree"></div>
+    <div class="library-head"><div><span class="eyebrow">INSERT CENTER</span><h2>Symbol library <span id="symbolCount"></span></h2></div><button class="icon-button" data-action="customSymbol" title="Create or import symbol"><svg class="icon"><use href="#i-plus"/></svg></button></div>
+    <label class="search-field library-search"><svg class="icon"><use href="#i-search"/></svg><input id="symbolSearch" placeholder="Find a symbol…" aria-label="Search symbols"></label>
+    <div class="library-filter"><select id="symbolCategory" aria-label="Symbol category"><option value="">All categories</option></select><button class="icon-button" data-action="macro" title="Create macro from selection"><svg class="icon"><use href="#i-copy"/></svg></button></div>
+    <div id="symbolLibrary" class="symbol-library"></div>
+    <div class="navigator-footer"><svg class="icon"><use href="#i-link"/></svg>Persistent identities · connected intelligence</div>
+  </aside>
+  <section class="editor" aria-label="Schematic editor">
+    <div id="pageTabs" class="page-tabs"></div>
+    <div class="editor-bar"><div class="breadcrumb"><span id="pageStructure">=MCC+CP1</span><svg class="icon"><use href="#i-chevron"/></svg><strong id="pageBreadcrumb">Power distribution</strong></div><div class="editor-bar-tools"><button class="icon-button" data-action="fit" title="Fit page · F"><svg class="icon"><use href="#i-fit"/></svg></button><button class="icon-button" data-action="focus" title="Focus workspace"><svg class="icon"><use href="#i-expand"/></svg></button><span class="sheet-format">SCHEMATIC · LANDSCAPE</span></div></div>
+    <div id="stage" class="stage" tabindex="0" aria-label="Interactive electrical schematic. V selects, W wires, R rotates, F fits the page. Use the symbol library to insert components.">
+      <canvas id="paper" aria-hidden="true"></canvas><canvas id="vectors" aria-hidden="true"></canvas><canvas id="fallback" aria-hidden="true" hidden></canvas><canvas id="labels" aria-hidden="true"></canvas>
+      <div class="canvas-tools"><button class="active" data-action="select" title="Select · V"><svg class="icon"><use href="#i-cursor"/></svg></button><button data-action="wire" title="Connect pins · W"><svg class="icon"><use href="#i-wire"/></svg></button><button data-action="pan" title="Pan · H or hold Space"><svg class="icon"><use href="#i-pan"/></svg></button><span></span><button data-action="rotate" title="Rotate · R"><svg class="icon"><use href="#i-rotate"/></svg></button><button data-action="delete" title="Delete selection"><svg class="icon"><use href="#i-trash"/></svg></button></div>
+      <div id="toolHint" class="tool-hint"><span class="hint-dot"></span><span>Ready to engineer</span></div>
+      <div class="zoom-controls"><button data-action="zoomOut" title="Zoom out"><svg class="icon"><use href="#i-minus"/></svg></button><button id="zoomLabel" data-action="fit" title="Fit page">100%</button><button data-action="zoomIn" title="Zoom in"><svg class="icon"><use href="#i-plus"/></svg></button><i></i><button data-action="fit" title="Fit page"><svg class="icon"><use href="#i-fit"/></svg></button></div>
+    </div>
+    <section id="dock" class="dock" aria-label="Engineering data">
+      <div id="dockResize" class="dock-resize" title="Drag to resize reports"></div>
+      <div class="dock-tabs"><button data-dock="issues" class="active">Messages <span id="issueCount">0</span></button><button data-dock="connections">Connections</button><button data-dock="terminals">Terminals</button><button data-dock="cables">Cables</button><button data-dock="plc">PLC I/O</button><button data-dock="bom">BOM</button><div class="dock-tab-actions"><button class="icon-button" data-action="dockExpand" title="Expand report"><svg class="icon"><use href="#i-expand"/></svg></button></div></div>
+      <div class="dock-toolbar"><div id="dockSummary"></div><div class="dock-controls"><input id="reportSearch" placeholder="Filter rows…" aria-label="Filter report"><span id="dockExtra"></span><button class="small-button" data-action="exportCSV"><svg class="icon"><use href="#i-export"/></svg>CSV</button></div></div>
+      <div id="dockContent" class="dock-content"></div>
+    </section>
+  </section>
+  <aside class="inspector" aria-label="Properties inspector"><div class="panel-title"><span>Properties</span><span class="inspector-live"><i></i>LIVE</span></div><div id="inspectorContent" class="inspector-content"></div></aside>
+</main>
+<footer class="statusbar"><span id="statusMessage">Loading project</span><div class="status-right"><span id="coordinateStatus">X 0 · Y 0</span><button id="snapStatus" data-action="snap">SNAP 10</button><button id="gridStatus" data-action="grid">GRID</button><span id="graphStatus">Semantic graph</span><span id="renderStatus" class="gpu-status">Starting renderer…</span></div></footer>
+<div id="menuPopup" class="menu-popup" hidden></div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<dialog id="dialog"><form id="dialogForm"><header><div><span class="eyebrow">VOLTWEAVE WORKSPACE</span><h2 id="dialogTitle"></h2></div><button type="button" class="icon-button" id="dialogClose" aria-label="Close dialog"><svg class="icon"><use href="#i-close"/></svg></button></header><div id="dialogBody" class="dialog-body"></div><footer><button type="button" id="dialogCancel" class="secondary-button">Cancel</button><button type="submit" id="dialogSubmit" class="primary-button">Apply</button></footer></form></dialog>
+<input type="file" id="projectFile" accept=".json,.vw" hidden><input type="file" id="symbolFile" accept=".json" hidden>
+<script type="module" src="src/app.js"></script>
+</body></html>
