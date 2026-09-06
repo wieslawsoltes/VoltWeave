@@ -1,0 +1,110 @@
+name: Test and publish GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: voltweave-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: Test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run core and persistence tests
+        run: npm test
+      - name: Generate engineering examples
+        run: npm run examples
+      - name: Build standalone Pages site
+        run: npm run build:pages
+      - name: Validate release files
+        run: |
+          test -s _site/index.html
+          test -s _site/voltweave.html
+          test -s _site/examples/conveyor-documentation.html
+          test -f _site/.nojekyll
+          node --input-type=module -e "import fs from 'node:fs'; const v = JSON.parse(fs.readFileSync('_site/version.json')); if (v.commit !== process.env.GITHUB_SHA) throw Error('Unexpected source commit');"
+      - name: Upload static site
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: voltweave-site
+          path: _site/
+          include-hidden-files: true
+          retention-days: 7
+
+  publish:
+    name: Publish and verify
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pages: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SITE_URL: https://wieslawsoltes.github.io/VoltWeave/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: voltweave-site
+          path: _site
+      - name: Publish static files to gh-pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin gh-pages:refs/remotes/origin/gh-pages
+          pages_dir="$RUNNER_TEMP/voltweave-pages"
+          git worktree add --detach "$pages_dir" refs/remotes/origin/gh-pages
+          rsync -a --delete --exclude='.git' _site/ "$pages_dir/"
+          git -C "$pages_dir" add --all
+          if ! git -C "$pages_dir" diff --cached --quiet; then
+            git -C "$pages_dir" commit -m "deploy: VoltWeave from ${GITHUB_SHA}"
+            git -C "$pages_dir" push origin HEAD:gh-pages
+          fi
+      - name: Request GitHub Pages build
+        shell: bash
+        run: |
+          set -euo pipefail
+          # GITHUB_TOKEN pushes do not trigger a Pages build automatically.
+          # The repository publishing source is gh-pages at the root directory.
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds"
+      - name: Verify deployed commit over HTTPS
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent --show-error --max-time 15 \
+                "${SITE_URL}version.json?commit=${GITHUB_SHA}&attempt=${attempt}" \
+                -o "$RUNNER_TEMP/voltweave-live-version.json"; then
+              if node --input-type=commonjs -e "const fs=require('node:fs'); const v=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/voltweave-live-version.json')); process.exit(v.commit===process.env.GITHUB_SHA?0:1);"; then
+                curl --fail --silent --show-error --max-time 30 "$SITE_URL" -o "$RUNNER_TEMP/voltweave-live.html"
+                grep -q 'VoltWeave' "$RUNNER_TEMP/voltweave-live.html"
+                printf '## Published VoltWeave\n\nSite: %s\n\nVerified source commit: `%s`\n' "$SITE_URL" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+                exit 0
+              fi
+            fi
+            sleep 5
+          done
+          echo 'The public site did not serve the expected commit before the verification deadline.' >&2
+          exit 1
