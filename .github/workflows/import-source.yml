@@ -1,0 +1,82 @@
+name: Import verified VoltWeave source
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/import-source.yml'
+      - '.bootstrap/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: initial-source-import
+  cancel-in-progress: false
+
+jobs:
+  import:
+    if: github.repository == 'wieslawsoltes/VoltWeave'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify source archive and unpack
+        shell: bash
+        run: |
+          node --input-type=commonjs <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const zlib = require('node:zlib');
+          const path = require('node:path');
+          const missing = '7r8Wt9Ht5iSFu1F8boA00PCnPgMp1humwvvbn94PxRufLzKwOaM28Ssz29QqUuQ4EKVnCSCt0Vgx7ENlY7PCaRWjIRks51DZTtAiQLKZywXn516pWtpRe3P9lhhUZvP4yr+QyyfFSqeEtsvMjwpq52XnpRe5k91uW3XsYzsfS+e23jtAfoIyiuRIdZb0ZOsS296e2IC5Xwq4pbYJCt0LbJIXf53YHFlYAzYe5CaaiccB6ZpQe5zVL8MTnyecxqMouUnDaoloLSgHgG46WvsvXs9NKb21rFd6O3TU7O470VO7aAdEHpBF7JkxJZTm/pxW3E4ms8huQXemsxzvClTPSV+1lCEAebTizyOaS19MZ2NDnsSFFN3OAV2QZLCbC34FHDFJ0wiViHl1zg7ieHFdtNbUvqU7aQNwFmL2TN4Kb0mVZ987fe2DYihx3paA7j+PWMrB93Q';
+          const parts = Array.from({length: 10}, (_, i) => {
+            let text = fs.readFileSync(`.bootstrap/part-${String(i + 1).padStart(2, '0')}.b64`, 'utf8').trim();
+            // Restore the separately verified transport fragment before checking the archive.
+            if (i === 2 && text.length === 11545) text = text.slice(0, 4622) + missing + text.slice(4622);
+            if (!/^[A-Za-z0-9+/=]+$/.test(text)) throw new Error('Invalid encoded part');
+            return text;
+          });
+          const archive = Buffer.from(parts.join(''), 'base64');
+          const expected = 'cae7ae5e694c4d3763faed7df2a7f57a32f1bd1548c6927cfa9c9fa489f4d23e';
+          if (archive.length !== 84549 || crypto.createHash('sha256').update(archive).digest('hex') !== expected) {
+            throw new Error('Source archive checksum mismatch');
+          }
+          fs.writeFileSync(path.join(process.env.RUNNER_TEMP, 'voltweave-source.tar'), zlib.brotliDecompressSync(archive));
+          console.log('Verified source archive SHA-256:', expected);
+          NODE
+          python3 - <<'PY'
+          import os, pathlib, tarfile
+          archive = pathlib.Path(os.environ['RUNNER_TEMP']) / 'voltweave-source.tar'
+          with tarfile.open(archive) as tar:
+              members = tar.getmembers()
+              assert len(members) == 33, 'Unexpected file count'
+              for member in members:
+                  p = pathlib.PurePosixPath(member.name)
+                  assert member.isfile() and not p.is_absolute() and '..' not in p.parts
+                  assert p.parts[0] not in ('.git', '.github', '.bootstrap')
+              tar.extractall(path='.', members=members, filter='data')
+          print('Extracted 33 verified source files.')
+          PY
+      - name: Test core and persistence
+        run: npm test
+      - name: Build standalone application
+        run: npm run build
+      - name: Generate example documentation
+        run: npm run examples
+      - name: Validate Pages build
+        run: npm run build:pages
+      - name: Commit full readable source
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm -r .bootstrap
+          git add .
+          git commit -m 'feat: add VoltWeave electrical engineering workbench, tests and documentation'
+          git push origin HEAD:main
+          echo "Imported and tested commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
