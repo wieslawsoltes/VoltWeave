@@ -36,11 +36,18 @@ jobs:
         run: npm run build:pages
       - name: Validate release files
         run: |
-          test -s _site/index.html
-          test -s _site/voltweave.html
-          test -s _site/examples/conveyor-documentation.html
           test -f _site/.nojekyll
-          node --input-type=module -e "import fs from 'node:fs'; const v = JSON.parse(fs.readFileSync('_site/version.json')); if (v.commit !== process.env.GITHUB_SHA) throw Error('Unexpected source commit');"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const version = JSON.parse(fs.readFileSync('_site/version.json', 'utf8'));
+          if (version.commit !== process.env.GITHUB_SHA) throw Error('Unexpected source commit');
+          for (const path of ['index.html', 'voltweave.html', 'examples/conveyor-documentation.html']) {
+            const html = fs.readFileSync(`_site/${path}`, 'utf8');
+            if (!/<!doctype html>/i.test(html) || !/voltweave/i.test(html)) {
+              throw Error(`Invalid release HTML: ${path}`);
+            }
+          }
+          NODE
       - name: Upload GitHub Pages artifact
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v4
@@ -106,7 +113,9 @@ jobs:
                 const page = await fetch(url, { signal: AbortSignal.timeout(15000), cache: 'no-store' });
                 if (!page.ok) throw new Error(`${endpoint} returned HTTP ${page.status}`);
                 const html = await page.text();
-                if (!html.includes('VoltWeave')) throw new Error(`${endpoint} did not contain the application branding`);
+                if (!/<!doctype html>/i.test(html) || !/voltweave/i.test(html)) {
+                  throw new Error(`${endpoint} did not contain the expected application or report HTML`);
+                }
                 console.log(`Verified HTTP ${page.status}: ${url} (${Buffer.byteLength(html)} bytes)`);
               }
               console.log(`Verified live source commit: ${version.commit}`);
