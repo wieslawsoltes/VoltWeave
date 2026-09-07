@@ -10,6 +10,7 @@ on:
 permissions:
   contents: read
 
+# Serialize production releases without cancelling an active Pages deployment.
 concurrency:
   group: voltweave-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -20,10 +21,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
+          package-manager-cache: false
       - name: Run core and persistence tests
         run: npm test
       - name: Generate engineering examples
@@ -37,13 +41,11 @@ jobs:
           test -s _site/examples/conveyor-documentation.html
           test -f _site/.nojekyll
           node --input-type=module -e "import fs from 'node:fs'; const v = JSON.parse(fs.readFileSync('_site/version.json')); if (v.commit !== process.env.GITHUB_SHA) throw Error('Unexpected source commit');"
-      - name: Upload static site
+      - name: Upload GitHub Pages artifact
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-pages-artifact@v4
         with:
-          name: voltweave-site
           path: _site/
-          include-hidden-files: true
           retention-days: 7
 
   publish:
@@ -51,60 +53,71 @@ jobs:
     needs: build
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     permissions:
-      contents: write
+      contents: read
       pages: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-      SITE_URL: https://wieslawsoltes.github.io/VoltWeave/
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Inspect Pages publishing configuration
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/pages" \
+            --jq '{build_type, source, html_url, status, https_enforced}'
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Deploy GitHub Pages artifact
+        id: deployment
+        uses: actions/deploy-pages@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
-      - uses: actions/download-artifact@v4
-        with:
-          name: voltweave-site
-          path: _site
-      - name: Publish static files to gh-pages
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git fetch origin gh-pages:refs/remotes/origin/gh-pages
-          pages_dir="$RUNNER_TEMP/voltweave-pages"
-          git worktree add --detach "$pages_dir" refs/remotes/origin/gh-pages
-          rsync -a --delete --exclude='.git' _site/ "$pages_dir/"
-          git -C "$pages_dir" add --all
-          if ! git -C "$pages_dir" diff --cached --quiet; then
-            git -C "$pages_dir" commit -m "deploy: VoltWeave from ${GITHUB_SHA}"
-            git -C "$pages_dir" push origin HEAD:gh-pages
-          fi
-      - name: Request GitHub Pages build
-        shell: bash
-        run: |
-          set -euo pipefail
-          # GITHUB_TOKEN pushes do not trigger a Pages build automatically.
-          # The repository publishing source is gh-pages at the root directory.
-          gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds"
+          package-manager-cache: false
       - name: Verify deployed commit over HTTPS
+        env:
+          SITE_URL: ${{ steps.deployment.outputs.page_url }}
         shell: bash
         run: |
           set -euo pipefail
-          for attempt in $(seq 1 60); do
-            if curl --fail --silent --show-error --max-time 15 \
-                "${SITE_URL}version.json?commit=${GITHUB_SHA}&attempt=${attempt}" \
-                -o "$RUNNER_TEMP/voltweave-live-version.json"; then
-              if node --input-type=commonjs -e "const fs=require('node:fs'); const v=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/voltweave-live-version.json')); process.exit(v.commit===process.env.GITHUB_SHA?0:1);"; then
-                curl --fail --silent --show-error --max-time 30 "$SITE_URL" -o "$RUNNER_TEMP/voltweave-live.html"
-                grep -q 'VoltWeave' "$RUNNER_TEMP/voltweave-live.html"
-                printf '## Published VoltWeave\n\nSite: %s\n\nVerified source commit: `%s`\n' "$SITE_URL" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
-                exit 0
-              fi
-            fi
-            sleep 5
-          done
-          echo 'The public site did not serve the expected commit before the verification deadline.' >&2
-          exit 1
+          SITE_URL="${SITE_URL%/}/"
+          export SITE_URL
+          node --input-type=module <<'NODE'
+          import { appendFile } from 'node:fs/promises';
+          const base = new URL(process.env.SITE_URL);
+          if (base.protocol !== 'https:') throw new Error('Pages must be served over HTTPS');
+          const expected = process.env.GITHUB_SHA;
+          const endpoints = ['index.html', 'voltweave.html', 'examples/conveyor-documentation.html'];
+          let lastError;
+          for (let attempt = 1; attempt <= 40; attempt++) {
+            try {
+              const versionUrl = new URL('version.json', base);
+              versionUrl.search = new URLSearchParams({ commit: expected, attempt: String(attempt) }).toString();
+              const response = await fetch(versionUrl, { signal: AbortSignal.timeout(15000), cache: 'no-store' });
+              if (!response.ok) throw new Error(`version.json returned HTTP ${response.status}`);
+              const version = await response.json();
+              if (version.commit !== expected) throw new Error(`Expected ${expected}; received ${version.commit}`);
+              for (const endpoint of endpoints) {
+                const url = new URL(endpoint, base);
+                url.searchParams.set('commit', expected);
+                const page = await fetch(url, { signal: AbortSignal.timeout(15000), cache: 'no-store' });
+                if (!page.ok) throw new Error(`${endpoint} returned HTTP ${page.status}`);
+                const html = await page.text();
+                if (!html.includes('VoltWeave')) throw new Error(`${endpoint} did not contain the application branding`);
+                console.log(`Verified HTTP ${page.status}: ${url} (${Buffer.byteLength(html)} bytes)`);
+              }
+              console.log(`Verified live source commit: ${version.commit}`);
+              await appendFile(process.env.GITHUB_STEP_SUMMARY,
+                `## Published VoltWeave\n\nSite: ${base}\n\nVerified source commit: \`${version.commit}\`\n\nApplication, standalone download and example documentation all returned HTTP 200.\n`);
+              process.exit(0);
+            } catch (error) {
+              lastError = error;
+              console.warn(`Verification ${attempt}/40: ${error.message}`);
+              if (attempt < 40) await new Promise(resolve => setTimeout(resolve, 5000));
+            }
+          }
+          throw new Error('The public site did not serve the expected release before the verification deadline.', { cause: lastError });
+          NODE
